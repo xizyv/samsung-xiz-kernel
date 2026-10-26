@@ -4,6 +4,8 @@ export maindir="$(pwd)"
 export outside="${maindir}/.."
 source "${outside}/$1env"
 
+echo 'CONFIG_KSU=y' >> "${defconfig_file}"
+echo 'CONFIG_KSU_MANUAL_HOOK=y' >> "${defconfig_file}"
 curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/main/kernel/setup.sh" | bash
 git add . && git commit -am "drivers: KernelSU"
 SUKI_DIR="drivers/kernelsu"
