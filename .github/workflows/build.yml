@@ -1,0 +1,103 @@
+name: xizyv Kernel
+
+on:
+  workflow_dispatch:
+    inputs:
+      KREPO:
+        description: 'kernel repo'
+        required: true
+        default: 'https://github.com/samsung-mt6768-aosp/android_kernel_samsung_mt6768'
+      KBRANCH:
+        description: 'kernel branch'
+        required: true
+        default: 'lineage-24.0'
+      DCFG:
+        description: 'base defconfig'
+        required: true
+        default: 'mt6768-unifiedk414_lineage_defconfig'
+      FRAG:
+        description: 'device config fragment'
+        required: false
+        default: 'a32.config'
+      REBRAND:
+        description: 'kernel localversion'
+        required: false
+        default: 'xizyv-a32'
+      KSU:
+        description: 'root solution'
+        type: choice
+        options:
+          - non-root
+          - baka
+        default: baka
+      ZREPO:
+        description: 'zipper repo'
+        required: true
+        default: 'https://github.com/MrGadget84/AnyKernel3'
+      ZBRANCH:
+        description: 'zipper branch'
+        required: true
+        default: 'a325f'
+      COMPILER:
+        description: 'toolchain script name'
+        required: true
+        default: 'AOSP-Clang-11'
+      SUFFIX:
+        description: 'zip name suffix'
+        required: false
+        default: ''
+      CONTAINER:
+        description: 'container image'
+        required: true
+        default: 'fedora:40'
+
+env:
+  REPO: ${{ github.event.inputs.KREPO }}
+  KERNEL_BRANCH: ${{ github.event.inputs.KBRANCH }}
+  DCFG: ${{ github.event.inputs.DCFG }}
+  FRAG: ${{ github.event.inputs.FRAG }}
+  REBRAND: ${{ github.event.inputs.REBRAND }}
+  PATCH_KSU: ${{ github.event.inputs.KSU }}
+  zipper_repo: ${{ github.event.inputs.ZREPO }}
+  zipper_branch: ${{ github.event.inputs.ZBRANCH }}
+  COMPILERS: ${{ github.event.inputs.COMPILER }}
+  SUFFIX: ${{ github.event.inputs.SUFFIX }}
+  TZ: Asia/Ho_Chi_Minh
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ github.event.inputs.CONTAINER }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: init build env
+        run: |
+          dnf group install development-tools -y
+          dnf install which llvm lld bc bison ca-certificates curl flex glibc-devel.i686 glibc-devel binutils-devel openssl python3 python2 zstd clang gcc-arm-linux-gnu dtc libxml2 libarchive openssl-devel perl tomsfastmath-devel wget xz patch -y
+          ln -sf /usr/bin/python3 /usr/bin/python
+          git config --global user.name "xizyv"
+          git config --global user.email "xizyv@users.noreply.github.com"
+
+      - name: clone kernel
+        run: git clone --depth=1 --single-branch "$REPO" -b "$KERNEL_BRANCH" kernel
+
+      - name: patch root
+        if: ${{ github.event.inputs.KSU == 'baka' }}
+        run: |
+          cd kernel
+          bash ../ksu/baka.sh
+
+      - name: build and pack
+        run: |
+          cd kernel
+          bash ../build.sh "$COMPILERS"
+
+      - name: upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-${{ github.event.inputs.REBRAND }}-${{ github.run_number }}
+          path: kernel/*.zip
+          retention-days: 7
