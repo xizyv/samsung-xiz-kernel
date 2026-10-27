@@ -88,6 +88,8 @@ jobs:
         if: ${{ github.event.inputs.KSU == 'baka' }}
         run: |
           cd kernel
+          source ../env
+          make ${defconfig}
           bash ../ksu/baka.sh
 
       - name: build and pack
