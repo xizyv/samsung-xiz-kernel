@@ -88,9 +88,10 @@ jobs:
         if: ${{ github.event.inputs.KSU == 'baka' }}
         run: |
           cd kernel
-          source ../env
-          make ${defconfig}
+          cat arch/arm64/configs/${{ github.event.inputs.DCFG }} arch/arm64/configs/${{ github.event.inputs.FRAG }} > .config
+          make olddefconfig
           bash ../ksu/baka.sh
+
 
       - name: build and pack
         run: |
